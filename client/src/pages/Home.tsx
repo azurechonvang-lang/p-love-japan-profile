@@ -1,408 +1,195 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
+  CalendarDays,
+  Check,
   ChevronRight,
+  CircleHelp,
+  CloudRain,
+  CloudSun,
+  Clock3,
   ExternalLink,
-  Facebook,
-  Instagram,
-  Mail,
+  Globe2,
+  Landmark,
   MapPin,
   Menu,
-  Play,
-  Sparkles,
+  Moon,
+  PanelLeftClose,
+  RefreshCw,
+  Settings2,
+  Sun,
+  TrainFront,
+  Umbrella,
+  WalletCards,
+  Waves,
   X,
-  Youtube,
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
-const ASSETS = {
-  hero: "/manus-storage/japanese-travel-journal-hero_b2d8cbf8.png",
-  travelPortrait: "/manus-storage/p-love-japan-avatar_a554f8d7.jpg",
-  bagPortrait: "/manus-storage/pp-bag-avatar_298e4b89.jpg",
+type Settings = {
+  routes: string[];
+  density: "compact" | "relaxed";
 };
 
-type Video = {
-  id: string;
-  title: string;
-  label: string;
-  meta: string;
-  type: "latest" | "featured";
+const DEFAULT_SETTINGS: Settings = {
+  routes: ["34-T338", "34-M222", "26-T337", "MT2-T337", "MT4-T337", "26-M16"],
+  density: "compact",
 };
+const ROUTE_OPTIONS = [{ id: "34-T338", label: "34 · T338" }, { id: "34-M222", label: "34 · M222/2" }, { id: "26-T337", label: "26 · T337" }, { id: "MT2-T337", label: "MT2 · T337" }, { id: "MT4-T337", label: "MT4 · T337" }, { id: "26-M16", label: "26 · M16/1" }];
 
-type Channel = {
-  key: "travel" | "bag";
-  name: string;
-  handle: string;
-  intro: string;
-  accent: string;
-  dot: string;
-  subscribers: string;
-  videos: string;
-  views: string;
-  joined: string;
-  channelUrl: string;
-  portrait: string;
-  tags: string[];
-  videosList: Video[];
-};
-
-const channels: Channel[] = [
-  {
-    key: "travel",
-    name: "貝遊日本",
-    handle: "P LOVE JAPAN",
-    intro: "為準備自由行的人，把景點、交通、住宿與在地美食剪成一份可以帶著走的旅程筆記。",
-    accent: "rose",
-    dot: "bg-[#d46e65]",
-    subscribers: "168K",
-    videos: "377",
-    views: "34.4M",
-    joined: "2015.05.15",
-    channelUrl: "https://www.youtube.com/@plovejapan",
-    portrait: ASSETS.travelPortrait,
-    tags: ["日本自由行", "深度旅遊", "交通攻略", "溫泉旅館", "地方美食"],
-    videosList: [
-      {
-        id: "g2zBypkm-lo",
-        title: "沖繩離島 7 天遊｜八重山群島篇",
-        label: "最新旅程",
-        meta: "54K views · 40:08",
-        type: "latest",
-      },
-      {
-        id: "PbfJKWu9-1M",
-        title: "沖繩離島 7 天遊｜宮古群島篇",
-        label: "最新旅程",
-        meta: "67K views · 34:27",
-        type: "latest",
-      },
-      {
-        id: "BodeQ2VaiKY",
-        title: "箱根 3 日 2 夜｜周遊券旅程",
-        label: "人氣精選 · 428K views",
-        meta: "3 years ago · 18:38",
-        type: "featured",
-      },
-    ],
-  },
-  {
-    key: "bag",
-    name: "貝背包",
-    handle: "PPBAG",
-    intro: "由日式生活靈感，到香港探索與 AI 實用教學；把好奇心收進背包，分享更聰明、更自在的日常。",
-    accent: "sage",
-    dot: "bg-[#7c9980]",
-    subscribers: "196K",
-    videos: "167",
-    views: "24.5M",
-    joined: "2020.09.10",
-    channelUrl: "https://www.youtube.com/@ppbag",
-    portrait: ASSETS.bagPortrait,
-    tags: ["AI 新手", "AI 自動化", "香港探索", "日式家居", "生活分享"],
-    videosList: [
-      {
-        id: "Uhj0go8nQ54",
-        title: "AI Website Development Guide｜5 個程度實戰",
-        label: "最新影片",
-        meta: "21K views · 32:58",
-        type: "latest",
-      },
-      {
-        id: "JMxLulPqAGo",
-        title: "3 個超實用 AI 自動工作流",
-        label: "最新影片",
-        meta: "51K views · 16:56",
-        type: "latest",
-      },
-      {
-        id: "xRIH8gdbVGI",
-        title: "東平洲｜世外桃源環島一日遊",
-        label: "人氣精選 · 667K views",
-        meta: "5 years ago · 15:58",
-        type: "featured",
-      },
-    ],
-  },
-];
-
-const navItems = [
-  { label: "關於阿貝", href: "#about" },
-  { label: "兩個頻道", href: "#channels" },
-  { label: "精選作品", href: "#watch" },
-  { label: "合作聯絡", href: "#contact" },
-];
-
-function DotGrid() {
-  return <span className="dot-grid" aria-hidden="true" />;
+function readSettings(): Settings {
+  try {
+    const stored = localStorage.getItem("hk-live-dashboard-settings");
+    if (!stored) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(stored) as Partial<Settings>;
+    return {
+      routes: Array.isArray(parsed.routes) ? parsed.routes.filter((route) => ROUTE_OPTIONS.some((option) => option.id === route)) : DEFAULT_SETTINGS.routes,
+      density: parsed.density === "relaxed" ? "relaxed" : "compact",
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
 }
 
-function Tape({ className = "" }: { className?: string }) {
-  return <span className={`tape ${className}`} aria-hidden="true" />;
+function formatTime(value: string | null | undefined) {
+  if (!value) return "—";
+  return new Date(value).toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Macau" });
 }
 
-function Scribble({ className = "" }: { className?: string }) {
-  return <span className={`scribble ${className}`} aria-hidden="true" />;
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("zh-HK", { month: "numeric", day: "numeric", weekday: "short", timeZone: "Asia/Macau" });
 }
 
-function VideoCard({ video, theme }: { video: Video; theme: "rose" | "sage" }) {
-  const isFeatured = video.type === "featured";
-  return (
-    <a
-      href={`https://www.youtube.com/watch?v=${video.id}`}
-      target="_blank"
-      rel="noreferrer"
-      className={`video-card group ${theme} ${isFeatured ? "featured" : ""}`}
-      aria-label={`在 YouTube 觀看：${video.title}`}
-    >
-      <div className="video-image-wrap">
-        <img
-          src={`https://i.ytimg.com/vi/${video.id}/hq720.jpg`}
-          alt=""
-          className="video-image"
-          loading="lazy"
-        />
-        <span className="video-play"><Play size={15} fill="currentColor" /></span>
-        <span className="video-label">{video.label}</span>
-      </div>
-      <div className="video-copy">
-        <h4>{video.title}</h4>
-        <p>{video.meta}</p>
-      </div>
-    </a>
-  );
+function dateLabel() {
+  return new Intl.DateTimeFormat("zh-HK", { timeZone: "Asia/Macau", month: "long", day: "numeric", weekday: "long" }).format(new Date());
 }
 
-function ChannelSection({ channel, index }: { channel: Channel; index: number }) {
-  const [latestOne, latestTwo, featured] = channel.videosList;
-  const isTravel = channel.key === "travel";
+function SourceLine({ source, updatedAt }: { source: string; updatedAt?: string | null }) {
+  return <div className="source-line"><span>{source}</span><span>{updatedAt ? `更新 ${formatTime(updatedAt)}` : "等待資料"}</span></div>;
+}
 
-  return (
-    <article className={`channel-sheet ${channel.accent}`} id={index === 0 ? "channels" : undefined}>
-      <Tape className={isTravel ? "top-right" : "top-left"} />
-      <div className="channel-header">
-        <div className="channel-stamp-row">
-          <span className={`channel-number ${channel.dot}`}>0{index + 1}</span>
-          <span className="eyebrow">YOUTUBE CHANNEL</span>
-        </div>
-        <a href={channel.channelUrl} target="_blank" rel="noreferrer" className="channel-title-link">
-          <div className="portrait-stack">
-            <img src={channel.portrait} alt={`${channel.name} 頻道頭像`} />
-            <span className="portrait-ring" />
-          </div>
-          <div>
-            <h3>{channel.name}</h3>
-            <p className="channel-handle">@{channel.handle.toLowerCase()}</p>
-          </div>
-          <ArrowUpRight size={20} className="channel-arrow" />
-        </a>
-      </div>
+function RefreshButton({ onClick, loading, label = "更新" }: { onClick: () => void; loading?: boolean; label?: string }) {
+  return <button className="icon-button" onClick={onClick} aria-label={label} title={label}><RefreshCw size={14} className={loading ? "spin" : ""} /></button>;
+}
 
-      <p className="channel-intro">{channel.intro}</p>
+function StateMessage({ text = "連接唔到" }: { text?: string }) {
+  return <div className="state-message"><CircleHelp size={16} /><span>{text}</span></div>;
+}
 
-      <div className="channel-metrics" aria-label={`${channel.name} 頻道數據`}>
-        <div><strong>{channel.subscribers}</strong><span>訂閱者</span></div>
-        <div><strong>{channel.videos}</strong><span>公開影片</span></div>
-        <div><strong>{channel.views}</strong><span>總觀看</span></div>
-        <div><strong>{channel.joined}</strong><span>加入 YouTube</span></div>
-      </div>
+function SectionHeader({ icon: Icon, eyebrow, title, action }: { icon: typeof Globe2; eyebrow: string; title: string; action?: React.ReactNode }) {
+  return <div className="section-header"><div className="section-heading"><div className="section-icon"><Icon size={15} /></div><div><div className="eyebrow">{eyebrow}</div><h2>{title}</h2></div></div>{action}</div>;
+}
 
-      <div className="channel-tags">
-        {channel.tags.map((tag) => <span key={tag}>#{tag}</span>)}
-      </div>
+function WeatherCard() {
+  const query = trpc.dashboard.weather.useQuery(undefined, { refetchInterval: 600_000, staleTime: 120_000 });
+  const result = query.data;
+  const weather = result?.ok ? result.data : null;
+  return <section className="card weather-card" id="weather">
+    <div className="card-topline"><div className="eyebrow">NOW · MACAU</div><RefreshButton onClick={() => query.refetch()} loading={query.isFetching} /></div>
+    {weather ? <>
+      <div className="weather-main"><div><div className="location"><MapPin size={14} /> {weather.place}</div><div className="temperature">{weather.temperature ?? "—"}<span>°</span></div><div className="condition">{weather.condition}</div></div><div className="weather-orb"><CloudSun size={54} strokeWidth={1.4} /></div></div>
+      <div className="metric-row"><div><span>濕度</span><strong>{weather.humidity ?? "—"}%</strong></div><div><span>風向</span><strong>{weather.wind}</strong></div></div>
+      <div className="weather-note"><Umbrella size={14} /> {weather.warning}</div>
+      <SourceLine source="澳門氣象局·即時天氣" updatedAt={result?.updatedAt} />
+    </> : <StateMessage text={query.isLoading ? "載入緊…" : "連接唔到"} />}
+  </section>;
+}
 
-      <div className="channel-videos">
-        <div className="mini-section-head"><span>RECENTLY</span><small>最新分享</small></div>
-        <div className="two-video-grid">
-          <VideoCard video={latestOne} theme={channel.accent as "rose" | "sage"} />
-          <VideoCard video={latestTwo} theme={channel.accent as "rose" | "sage"} />
-        </div>
-        <div className="mini-section-head pick"><span>EDITOR'S PICK</span><small>人氣精選</small></div>
-        <VideoCard video={featured} theme={channel.accent as "rose" | "sage"} />
-      </div>
+function ForecastCard() {
+  const query = trpc.dashboard.forecast.useQuery(undefined, { refetchInterval: 600_000, staleTime: 120_000 });
+  const result = query.data;
+  const forecast = result?.ok ? result.data : null;
+  return <section className="card forecast-card" id="forecast">
+    <div className="card-topline"><div><div className="eyebrow">NEXT 9 DAYS</div><h3>{forecast?.region ?? "澳門區"}<span className="muted-title">天氣預報</span></h3></div><RefreshButton onClick={() => query.refetch()} loading={query.isFetching} /></div>
+    {forecast ? <><div className="forecast-strip">{forecast.days.map((day, index) => <div className={`forecast-day ${index === 0 ? "today" : ""}`} key={`${day.date}-${day.weekday}`}><div className="forecast-date">{index === 0 ? "今日" : day.date}</div><div className="forecast-week">{day.weekday}</div><div className="forecast-icon">{Number(day.icon) >= 60 ? <CloudRain size={22} /> : <CloudSun size={22} />}</div><div className="forecast-temp"><strong>{day.max}°</strong><span>{day.min}°</span></div><div className="forecast-rain">{day.psr} <span>雨勢</span></div></div>)}</div><div className="forecast-caption">{forecast.note}</div><SourceLine source="澳門氣象局·九日預報" updatedAt={result?.updatedAt} /></> : <StateMessage text={query.isLoading ? "載入緊…" : "連接唔到"} />}
+  </section>;
+}
 
-      <a className="channel-button" href={channel.channelUrl} target="_blank" rel="noreferrer">
-        前往 {channel.name} 頻道 <ArrowUpRight size={17} />
-      </a>
-    </article>
-  );
+function FxCard() {
+  const query = trpc.dashboard.fx.useQuery(undefined, { refetchInterval: 900_000, staleTime: 180_000 });
+  const result = query.data;
+  const fx = result?.ok ? result.data : null;
+  return <section className="card fx-card" id="fx">
+    <div className="card-topline"><div><div className="eyebrow">FX SNAPSHOT</div><h3>澳門幣匯率</h3></div><RefreshButton onClick={() => query.refetch()} loading={query.isFetching} /></div>
+    {fx ? <><div className="fx-list">{fx.rows.map((row, index) => <div className={`fx-row ${index === 0 ? "primary" : ""}`} key={row.code}><div className="fx-name"><span className="currency-dot">{row.code === "JPY" ? "¥" : row.code === "USD" ? "$" : row.code === "EUR" ? "€" : row.code === "GBP" ? "£" : "¤"}</span><div><strong>{row.name}</strong><small>{row.code}</small></div></div><div className="fx-value"><strong>{row.display}</strong><small>{row.secondary}</small></div></div>)}</div><SourceLine source={`ExchangeRate-API·基準 MOP · ${fx.date}`} updatedAt={result?.updatedAt} /></> : <StateMessage text={query.isLoading ? "載入緊…" : "連接唔到"} />}
+  </section>;
+}
+
+function BusCard({ selectedRoutes }: { selectedRoutes: string[] }) {
+  const query = trpc.dashboard.bus.useQuery(undefined, { refetchInterval: 60_000, staleTime: 20_000 });
+  const result = query.data;
+  const bus = result?.ok ? result.data : null;
+  const routes = bus?.routes.filter((item) => selectedRoutes.includes(item.id)) ?? [];
+  return <section className="card bus-card" id="bus">
+    <div className="card-topline"><div><div className="eyebrow">NEXT DEPARTURES · DSAT</div><h3>澳門巴士 <span className="muted-title">出發</span></h3></div><RefreshButton onClick={() => query.refetch()} loading={query.isFetching} /></div>
+    {bus ? <><div className="bus-table"><div className="bus-header"><span>路線</span><span>車站</span><span>下一班</span></div>{routes.map((row) => <div className="bus-row" key={row.route}><div className="route-chip">{row.route}<small>{row.stop}</small></div><div className="bus-bay">{row.stop}<small>{row.detail}</small></div><div className="bus-next">{row.minutes === 0 ? <strong className="arriving">即將到站</strong> : row.minutes !== null ? <><strong>{row.minutes}<em>分鐘</em></strong><small>{formatTime(row.eta)}</small></> : <span className="muted">—</span>}</div></div>)}</div><div className="bus-footnote"><TrainFront size={14} /> 資料取自澳門交通事務局 · 約每 1 分鐘更新（到站時間為估算）</div><SourceLine source="DSAT Open Data·位置估算" updatedAt={result?.updatedAt} /></> : <StateMessage text={query.isLoading ? "載入緊…" : "連接唔到"} />}
+  </section>;
+}
+
+function HolidayCard() {
+  const query = trpc.dashboard.holidays.useQuery(undefined, { refetchInterval: 3_600_000, staleTime: 1_800_000 });
+  const result = query.data;
+  const holidays = result?.ok ? result.data : null;
+  return <section className="card holiday-card" id="holiday">
+    <div className="card-topline"><div><div className="eyebrow">UP NEXT · {holidays?.year ?? new Date().getFullYear()}</div><h3>公眾假期倒數</h3></div><RefreshButton onClick={() => query.refetch()} loading={query.isFetching} /></div>
+    {holidays?.next ? <><div className="holiday-main"><div className="holiday-count"><strong>{holidays.next.days}</strong><span>日</span></div><div><span className="holiday-label">下一個假期</span><h4>{holidays.next.name}</h4><p>{new Date(`${holidays.next.date}T00:00:00+08:00`).toLocaleDateString("zh-HK", { month: "long", day: "numeric", weekday: "long", timeZone: "Asia/Macau" })}</p></div></div><div className="holiday-mini-list">{holidays.upcoming.slice(1, 4).map((holiday) => <div key={holiday.date}><span>{holiday.name}</span><strong>{holiday.days}日</strong></div>)}</div><SourceLine source="澳門政府·公眾假期" updatedAt={result?.updatedAt} /></> : <StateMessage text={query.isLoading ? "載入緊…" : "連接唔到"} />}
+  </section>;
+}
+
+function SunCard() {
+  const query = trpc.dashboard.sun.useQuery(undefined, { refetchInterval: 3_600_000, staleTime: 1_800_000 });
+  const result = query.data;
+  const sun = result?.ok ? result.data : null;
+  return <section className="card sun-card" id="sun">
+    <div className="card-topline"><div><div className="eyebrow">SKY CLOCK · MACAU</div><h3>日出 · 日落</h3></div><RefreshButton onClick={() => query.refetch()} loading={query.isFetching} /></div>
+    {sun ? <><div className="sun-arc"><div className="sun-track"><span className="sun-point"><Sun size={16} /></span></div><div className="sun-times"><div><span>日出</span><strong>{sun.sunrise}</strong></div><div><span>日落</span><strong>{sun.sunset}</strong></div></div></div><div className="sun-transit"><Sun size={14} /> 澳門時間</div><SourceLine source="澳門氣象局·日出日落" updatedAt={result?.updatedAt} /></> : <StateMessage text={query.isLoading ? "載入緊…" : "連接唔到"} />}
+  </section>;
+}
+
+function Sparkline({ points, positive }: { points: Array<{ date: string; value: number }>; positive: boolean }) {
+  if (!points.length) return <div className="sparkline-empty">—</div>;
+  const values = points.map((point) => point.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const spread = max - min || Math.max(Math.abs(max) * 0.005, 1);
+  const coords = points.map((point, index) => {
+    const x = points.length === 1 ? 0 : (index / (points.length - 1)) * 200;
+    const y = 55 - ((point.value - min) / spread) * 45;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return <div className="spark-wrap"><svg viewBox="0 0 200 64" preserveAspectRatio="none" role="img" aria-label="近十個交易日走勢"><defs><linearGradient id={`fill-${positive ? "up" : "down"}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={positive ? "#0f8a73" : "#db6d69"} stopOpacity=".2" /><stop offset="1" stopColor={positive ? "#0f8a73" : "#db6d69"} stopOpacity="0" /></linearGradient></defs><polyline points={`${coords} 200,64 0,64`} fill={`url(#fill-${positive ? "up" : "down"})`} stroke="none" /><polyline points={coords} fill="none" stroke={positive ? "#0f8a73" : "#db6d69"} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" /></svg><div className="axis-labels"><span>{points[0]?.date}</span><span>{points[Math.floor(points.length / 2)]?.date}</span><span>{points.at(-1)?.date}</span></div></div>;
+}
+
+function MarketsCard() {
+  const query = trpc.dashboard.markets.useQuery(undefined, { refetchInterval: 300_000, staleTime: 60_000 });
+  const result = query.data;
+  const markets = result?.ok ? result.data : null;
+  const formatter = useMemo(() => new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }), []);
+  return <section className="markets-section" id="markets"><SectionHeader icon={Globe2} eyebrow="GLOBAL PULSE · 5 MIN REFRESH" title="環球市場指數" action={<RefreshButton onClick={() => query.refetch()} loading={query.isFetching} />} />
+    {markets ? <div className="markets-grid">{markets.map((market) => { const positive = market.change >= 0; return <article className="market-card" key={market.key}><div className="market-head"><div><span className="market-name">{market.label}</span><span className="market-symbol">{market.symbol}</span></div><div className="market-actions"><RefreshButton onClick={() => query.refetch()} loading={query.isFetching} label={`更新${market.label}`} /><span className={`change-pill ${positive ? "positive" : "negative"}`}>{positive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}{Math.abs(market.changePct).toFixed(2)}%</span></div></div><div className="market-price">{formatter.format(market.price)} <span>{market.currency} · {market.unit}</span></div><div className={`market-change ${positive ? "positive-text" : "negative-text"}`}>{positive ? "+" : "−"}{formatter.format(Math.abs(market.change))} <span>較前收</span></div><Sparkline points={market.points} positive={positive} /></article>})}</div> : <div className="markets-error"><StateMessage text={query.isLoading ? "載入緊…" : "連接唔到"} /></div>}
+    <div className="markets-note"><span>走勢：近 10 個交易日收市價</span><span>行情來源：Yahoo Finance 公開 Chart API · 或有延遲</span></div>
+  </section>;
+}
+
+function SettingsPanel({ settings, onSave, onClose }: { settings: Settings; onSave: (settings: Settings) => void; onClose: () => void }) {
+  const [draft, setDraft] = useState(settings);
+  return <div className="settings-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="settings-panel"><div className="panel-heading"><div><div className="eyebrow">PERSONALIZE</div><h2>首頁設定</h2></div><button className="icon-button" onClick={onClose} aria-label="關閉"><X size={16} /></button></div><div className="setting-block"><label>澳門巴士路線</label><p>只顯示你常用的路線，設定會儲存在這部裝置。</p><div className="route-options">{ROUTE_OPTIONS.map((route) => <button key={route.id} className={`route-option ${draft.routes.includes(route.id) ? "selected" : ""}`} onClick={() => setDraft((current) => ({ ...current, routes: current.routes.includes(route.id) ? current.routes.filter((item) => item !== route.id) : [...current.routes, route.id] }))}>{draft.routes.includes(route.id) && <Check size={14} />}{route.label}</button>)}</div></div><div className="setting-block"><label>資訊密度</label><div className="density-options"><button className={draft.density === "compact" ? "selected" : ""} onClick={() => setDraft({ ...draft, density: "compact" })}>緊湊</button><button className={draft.density === "relaxed" ? "selected" : ""} onClick={() => setDraft({ ...draft, density: "relaxed" })}>舒適</button></div></div><button className="save-button" onClick={() => onSave(draft)}>儲存設定</button></div></div>;
 }
 
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 18);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const closeMenu = () => setMenuOpen(false);
-
-  return (
-    <main className="site-shell">
-      <header className={`topbar ${scrolled ? "is-scrolled" : ""}`}>
-        <a href="#top" className="brand" aria-label="回到頁首" onClick={closeMenu}>
-          <span className="brand-mark">P</span>
-          <span><b>ABE</b><em>MEDIA NOTEBOOK</em></span>
-        </a>
-        <nav className="desktop-nav" aria-label="主要導覽">
-          {navItems.map((item, index) => <a href={item.href} key={item.href}>{String(index + 1).padStart(2, "0")} <span>{item.label}</span></a>)}
-        </nav>
-        <a className="nav-contact" href="#contact">LET'S TALK <ArrowDownRight size={16} /></a>
-        <button className="menu-toggle" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? "關閉選單" : "開啟選單"} aria-expanded={menuOpen}>
-          {menuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </header>
-
-      {menuOpen && (
-        <nav className="mobile-menu" aria-label="流動裝置導覽">
-          {navItems.map((item) => <a href={item.href} key={item.href} onClick={closeMenu}>{item.label}<ChevronRight size={18} /></a>)}
-        </nav>
-      )}
-
-      <section className="hero" id="top">
-        <img src={ASSETS.hero} alt="日式手帳風旅行與創作拼貼背景" className="hero-art" />
-        <div className="hero-grain" />
-        <div className="hero-inner">
-          <p className="hero-kicker"><span /> HONG KONG CREATOR · SINCE 2015</p>
-          <div className="hero-title-block">
-            <p className="hero-jp">旅を、知るを、もっと楽しく。</p>
-            <h1>阿貝的<br /><i>創作筆記</i></h1>
-            <p className="hero-description">從日本旅途到 AI 日常，<br />用真誠與細節，把世界分享給你。</p>
-          </div>
-          <div className="hero-profile-note">
-            <Tape className="tilt-left" />
-            <div className="profile-photo-frame">
-              <img src={ASSETS.travelPortrait} alt="阿貝於貝遊日本頻道的個人頭像" />
-            </div>
-            <div className="profile-note-copy"><span>CREATOR</span><b>ABE / 阿貝</b><small>TRAVEL · LIFE · AI</small></div>
-          </div>
-          <a href="#channels" className="scroll-note"><span>SCROLL TO EXPLORE</span><ArrowDownRight size={18} /></a>
-          <div className="hero-stats">
-            <div><b>364K</b><span>CHANNEL FOLLOWERS</span></div>
-            <div><b>544+</b><span>VIDEOS SHARED</span></div>
-            <div><b>10+</b><span>YEARS OF STORIES</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section className="intro-section" id="about">
-        <div className="section-index"><span>01</span><i /> <b>ABOUT ABE</b></div>
-        <div className="intro-layout">
-          <div className="intro-aside">
-            <p className="vertical-label">あべ の クリエイティブ・ジャーニー</p>
-            <div className="hand-drawn-star">✦</div>
-          </div>
-          <div className="intro-content">
-            <p className="intro-lead">不只是一個目的地，<br />而是一份<strong>值得收藏的體驗。</strong></p>
-            <div className="intro-body">
-              <p>我是阿貝，一位以廣東話分享所見所想的香港創作者。十多年來，我把走過的日本路線、細味過的地方風景，以及親手試過的實用資訊，整理成觀眾可以直接參考的影像筆記。</p>
-              <p>在 <em>貝遊日本</em>，會看見細節滿載的旅遊企劃；在 <em>貝背包 PPBAG</em>，則會遇見生活靈感、香港探索與近年的 AI 學習分享。每條影片，都希望令下一次出發或下一步嘗試，變得更有把握。</p>
-            </div>
-            <div className="identity-strip">
-              <span><MapPin size={16} /> HONG KONG</span>
-              <span><Sparkles size={16} /> 2 CHANNELS</span>
-              <span><Play size={15} fill="currentColor" /> 58.9M VIEWS</span>
-            </div>
-          </div>
-          <aside className="mini-polaroid">
-            <Tape className="top" />
-            <img src={ASSETS.bagPortrait} alt="阿貝於貝背包頻道的個人頭像" />
-            <p>curious<br />always.</p>
-            <Scribble className="bottom-scribble" />
-          </aside>
-        </div>
-      </section>
-
-      <section className="channels-section">
-        <div className="section-head wide">
-          <div>
-            <p className="eyebrow">TWO CORNERS OF ABE'S WORLD</p>
-            <h2>兩個頻道，<br /><i>同一份好奇心。</i></h2>
-          </div>
-          <p className="section-side-copy">一邊寫下日本的完整路線，<br />一邊打開生活與科技的新問題。</p>
-        </div>
-        <div className="channel-grid">
-          {channels.map((channel, index) => <ChannelSection channel={channel} index={index} key={channel.key} />)}
-        </div>
-        <p className="data-note">公開數據更新於 2026.08.29 · 訂閱與觀看數會隨頻道公開資料變動</p>
-      </section>
-
-      <section className="watch-section" id="watch">
-        <div className="watch-head">
-          <div className="section-index light"><span>03</span><i /> <b>WATCH & DISCOVER</b></div>
-          <h2>一按就出發，<br /><i>或開始學習。</i></h2>
-        </div>
-        <div className="watch-collage">
-          <a href="https://www.youtube.com/watch?v=qZOheEbMGN0" target="_blank" rel="noreferrer" className="collage-card tokyo">
-            <img src="https://i.ytimg.com/vi/qZOheEbMGN0/maxresdefault.jpg" alt="貝遊日本：東京一日之旅影片縮圖" loading="lazy" />
-            <span className="floating-play"><Play fill="currentColor" size={19} /></span>
-            <div><small>貝遊日本 · 10週年</small><strong>東京一日之旅</strong></div>
-          </a>
-          <a href="https://www.youtube.com/watch?v=Lgqptgijqvo" target="_blank" rel="noreferrer" className="collage-card ai">
-            <img src="https://i.ytimg.com/vi/Lgqptgijqvo/maxresdefault.jpg" alt="貝背包：AI 新手入門影片縮圖" loading="lazy" />
-            <span className="floating-play"><Play fill="currentColor" size={19} /></span>
-            <div><small>貝背包 PPBAG</small><strong>AI 新手入門</strong></div>
-          </a>
-          <div className="collage-word-note"><span>旅</span><p>PLAY<br />LEARN<br />GO</p><Scribble /></div>
-        </div>
-      </section>
-
-      <section className="tags-section">
-        <div className="section-index"><span>04</span><i /> <b>WHAT WE TALK ABOUT</b></div>
-        <div className="tags-layout">
-          <div>
-            <h2>熱門內容<br /><i>關鍵字。</i></h2>
-            <p>為每一種好奇心，留下可重看的入口。</p>
-          </div>
-          <div className="big-tags" aria-label="熱門影片標籤">
-            {[
-              ["#日本自由行", "rose"], ["#AI新手", "sage"], ["#沖繩", "paper"], ["#香港探索", "indigo"],
-              ["#AI自動化", "sage"], ["#溫泉旅館", "rose"], ["#日式家居", "paper"], ["#旅遊攻略", "indigo"],
-              ["#地方美食", "rose"], ["#生活分享", "sage"],
-            ].map(([tag, color], index) => <span className={`big-tag ${color}`} key={tag} style={{ transform: `rotate(${[-2, 1, -1, 2, -2, 1, -1, 2, -2, 1][index]}deg)` }}>{tag}</span>)}
-          </div>
-        </div>
-      </section>
-
-      <section className="contact-section" id="contact">
-        <DotGrid />
-        <div className="contact-header">
-          <p className="eyebrow">COLLABORATION NOTE</p>
-          <h2>有一個好故事，<br /><i>不如一起說。</i></h2>
-          <p>歡迎旅遊、生活、科技與品牌企劃合作。請告訴我你的想法、時間表和期待，一起找最合適的分享方式。</p>
-        </div>
-        <div className="contact-cards">
-          <a href="mailto:plovejapan@gmail.com?subject=合作邀請｜貝遊日本" className="contact-card rose-card">
-            <span className="contact-icon"><Mail size={20} /></span>
-            <small>TRAVEL · JAPAN</small>
-            <strong>貝遊日本</strong>
-            <em>plovejapan@gmail.com</em>
-            <span className="contact-arrow"><ArrowUpRight size={22} /></span>
-          </a>
-          <a href="mailto:ppbag97@gmail.com?subject=合作邀請｜貝背包 PPBAG" className="contact-card sage-card">
-            <span className="contact-icon"><Mail size={20} /></span>
-            <small>LIFE · AI · HONG KONG</small>
-            <strong>貝背包 PPBAG</strong>
-            <em>ppbag97@gmail.com</em>
-            <span className="contact-arrow"><ArrowUpRight size={22} /></span>
-          </a>
-        </div>
-      </section>
-
-      <footer className="footer">
-        <div className="footer-brand"><span className="brand-mark">P</span><p><b>ABE MEDIA NOTEBOOK</b><br />made with curiosity in Hong Kong</p></div>
-        <div className="social-links" aria-label="社群連結">
-          <a href="https://www.youtube.com/@plovejapan" target="_blank" rel="noreferrer"><Youtube size={17} /> 貝遊日本</a>
-          <a href="https://www.youtube.com/@ppbag" target="_blank" rel="noreferrer"><Youtube size={17} /> 貝背包</a>
-          <a href="https://www.instagram.com/plovejapan/" target="_blank" rel="noreferrer"><Instagram size={17} /> @plovejapan</a>
-          <a href="https://www.instagram.com/ppbag97/" target="_blank" rel="noreferrer"><Instagram size={17} /> @ppbag97</a>
-          <a href="https://www.facebook.com/plovejapan" target="_blank" rel="noreferrer"><Facebook size={17} /> Facebook</a>
-        </div>
-        <p className="footer-note">© 2026 ABE · P LOVE JAPAN / PPBAG</p>
-      </footer>
-    </main>
-  );
+  const [settings, setSettings] = useState<Settings>(() => readSettings());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [clock, setClock] = useState(() => new Date());
+  useEffect(() => { const timer = window.setInterval(() => setClock(new Date()), 1000); return () => window.clearInterval(timer); }, []);
+  const saveSettings = (next: Settings) => { const normalized = { ...next, routes: next.routes.length ? next.routes : DEFAULT_SETTINGS.routes }; setSettings(normalized); localStorage.setItem("hk-live-dashboard-settings", JSON.stringify(normalized)); setSettingsOpen(false); };
+  const time = clock.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Macau" });
+  return <div className={`dashboard-app ${settings.density === "relaxed" ? "relaxed" : ""}`}>
+    <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}><div className="brand"><div className="brand-mark">MO</div><div><strong>HOME / MO</strong><span>personal dashboard</span></div></div><div className="sidebar-intro"><span>氹仔．澳門</span><p>把澳門每日要看的資訊，放在同一個畫面。</p></div><nav><a href="#weather" onClick={() => setSidebarOpen(false)}><CloudSun size={16} />今日天氣</a><a href="#forecast" onClick={() => setSidebarOpen(false)}><CloudRain size={16} />九日預報</a><a href="#bus" onClick={() => setSidebarOpen(false)}><TrainFront size={16} />澳門巴士</a><a href="#markets" onClick={() => setSidebarOpen(false)}><Globe2 size={16} />市場脈搏</a><a href="#holiday" onClick={() => setSidebarOpen(false)}><CalendarDays size={16} />假期倒數</a></nav><div className="sidebar-bottom"><div className="connection"><span className="live-dot" /> 公開數據串接中</div><a href="#sources" className="sidebar-link"><CircleHelp size={14} />資料來源</a></div></aside>
+    {sidebarOpen && <div className="mobile-scrim" onClick={() => setSidebarOpen(false)} />}
+    <main className="main-content"><header className="topbar"><button className="mobile-menu" onClick={() => setSidebarOpen(true)} aria-label="開啟選單"><Menu size={18} /></button><div className="topbar-copy"><span className="eyebrow">{new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Macau", weekday: "long", day: "2-digit", month: "short", year: "numeric" }).format(clock).toUpperCase()}</span><h1>早晨，今日澳門。</h1></div><div className="topbar-actions"><div className="clock-block"><Clock3 size={15} /><strong>{time}</strong><span>{dateLabel()}</span></div><button className="settings-button" onClick={() => setSettingsOpen(true)}><Settings2 size={15} /><span>設定</span></button></div></header><div className="status-strip"><span><span className="live-dot" /> <strong>LIVE DASHBOARD</strong></span><span>所有資料由後端 API 取得 · 自動更新</span><span className="status-note"><Waves size={14} /> MAT / UTC+8</span></div><div className="dashboard-grid"><WeatherCard /><ForecastCard /><FxCard /><BusCard selectedRoutes={settings.routes} /><HolidayCard /><SunCard /><MarketsCard /></div><footer className="footer" id="sources"><div><strong>MO HOME</strong><span>給澳門日常使用的實時資訊首頁</span></div><div className="footer-links"><a href="https://www.smg.gov.mo/" target="_blank" rel="noreferrer">澳門氣象局 <ExternalLink size={11} /></a><a href="https://www.gov.mo/" target="_blank" rel="noreferrer">Gov.MO <ExternalLink size={11} /></a><a href="https://finance.yahoo.com/" target="_blank" rel="noreferrer">Yahoo Finance <ExternalLink size={11} /></a></div></footer></main>
+    {settingsOpen && <SettingsPanel settings={settings} onSave={saveSettings} onClose={() => setSettingsOpen(false)} />}
+  </div>;
 }
