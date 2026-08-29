@@ -21,13 +21,13 @@ describe("Macau dashboard data adapters", () => {
     if (result.ok) expect(result.data.next).toMatchObject({ name: "Christmas Day (Public holiday)", date: "2026-12-25" });
   });
 
-  it("maps the six requested Macau bus stop queries and marks estimates", async () => {
+  it("maps the seven requested Macau bus stop queries and marks estimates", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ header: "000", data: { routeInfo: [{ staCode: "T338", busInfo: [] }, { staCode: "T337", busInfo: [{ speed: "12" }] }, { staCode: "M222/2", busInfo: [] }, { staCode: "M16/1", busInfo: [] }] } })));
     const result = await getBusEta();
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.routes.map((item) => item.id)).toEqual(["34-T338", "34-M222", "26-T337", "MT2-T337", "MT4-T337", "26-M16"]);
-      expect(result.data.routes.map((item) => item.stopName)).toEqual(["海洋花園衛生中心", "看台街", "氹仔海濱花園", "氹仔海濱花園", "氹仔海濱花園", "提督馬路/雅廉訪"]);
+      expect(result.data.routes.map((item) => item.id)).toEqual(["34-T338", "34-M222", "26-T337", "MT4-T337", "MT2-T337", "52-T337", "26-M16"]);
+      expect(result.data.routes.map((item) => item.stopName)).toEqual(["海洋花園衛生中心", "看台街", "氹仔海濱花園", "氹仔海濱花園", "氹仔海濱花園", "氹仔海濱花園", "提督馬路/雅廉訪"]);
       expect(result.data.routes.every((item) => item.estimate)).toBe(true);
     }
   });

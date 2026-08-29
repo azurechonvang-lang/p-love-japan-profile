@@ -25,14 +25,14 @@ type Settings = {
 };
 
 const DEFAULT_SETTINGS: Settings = {
-  routes: ["34-T338", "34-M222", "26-T337", "MT2-T337", "MT4-T337", "26-M16"],
+  routes: ["34-T338", "34-M222", "26-T337", "MT4-T337", "MT2-T337", "52-T337", "26-M16"],
   density: "compact",
 };
-const ROUTE_OPTIONS = [{ id: "34-T338", label: "34 · T338" }, { id: "34-M222", label: "34 · M222/2" }, { id: "26-T337", label: "26 · T337" }, { id: "MT2-T337", label: "MT2 · T337" }, { id: "MT4-T337", label: "MT4 · T337" }, { id: "26-M16", label: "26 · M16/1" }];
+const ROUTE_OPTIONS = [{ id: "34-T338", label: "34 · T338" }, { id: "34-M222", label: "34 · M222/2" }, { id: "26-T337", label: "26 · T337" }, { id: "MT4-T337", label: "MT4 · T337" }, { id: "MT2-T337", label: "MT2 · T337" }, { id: "52-T337", label: "52 · T337" }, { id: "26-M16", label: "26 · M16/1" }];
 
 function readSettings(): Settings {
   try {
-    const stored = localStorage.getItem("macau-live-dashboard-settings");
+    const stored = localStorage.getItem("macau-live-dashboard-settings-v2");
     if (!stored) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(stored) as Partial<Settings>;
     return {
@@ -137,7 +137,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [clock, setClock] = useState(() => new Date());
   useEffect(() => { const timer = window.setInterval(() => setClock(new Date()), 1000); return () => window.clearInterval(timer); }, []);
-  const saveSettings = (next: Settings) => { const normalized = { ...next, routes: next.routes.length ? next.routes : DEFAULT_SETTINGS.routes }; setSettings(normalized); localStorage.setItem("macau-live-dashboard-settings", JSON.stringify(normalized)); setSettingsOpen(false); };
+  const saveSettings = (next: Settings) => { const normalized = { ...next, routes: next.routes.length ? next.routes : DEFAULT_SETTINGS.routes }; setSettings(normalized); localStorage.setItem("macau-live-dashboard-settings-v2", JSON.stringify(normalized)); setSettingsOpen(false); };
   const time = clock.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Macau" });
   return <div className={`dashboard-app ${settings.density === "relaxed" ? "relaxed" : ""}`}>
     <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}><div className="brand"><div className="brand-mark">MO</div><div><strong>HOME / MO</strong><span>personal dashboard</span></div></div><div className="sidebar-intro"><span>氹仔．澳門</span><p>把澳門每日要看的資訊，放在同一個畫面。</p></div><nav><a href="#weather" onClick={() => setSidebarOpen(false)}><CloudSun size={16} />今日天氣</a><a href="#forecast" onClick={() => setSidebarOpen(false)}><CloudRain size={16} />九日預報</a><a href="#bus" onClick={() => setSidebarOpen(false)}><TrainFront size={16} />澳門巴士</a><a href="#holiday" onClick={() => setSidebarOpen(false)}><CalendarDays size={16} />假期倒數</a></nav><div className="sidebar-bottom"><div className="connection"><span className="live-dot" /> 公開數據串接中</div><a href="#sources" className="sidebar-link"><CircleHelp size={14} />資料來源</a></div></aside>

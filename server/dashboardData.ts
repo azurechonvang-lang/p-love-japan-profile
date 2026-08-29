@@ -79,8 +79,9 @@ const busQueries = [
   { id: "34-T338", route: "34", dir: "1", stop: "T338", stopName: "海洋花園衛生中心", label: "34 · T338 海洋花園衛生中心" },
   { id: "34-M222", route: "34", dir: "0", stop: "M222/2", stopName: "看台街", label: "34 · M222/2 看台街" },
   { id: "26-T337", route: "26", dir: "0", stop: "T337", stopName: "氹仔海濱花園", label: "26 · T337 氹仔海濱花園" },
-  { id: "MT2-T337", route: "MT2", dir: "0", stop: "T337", stopName: "氹仔海濱花園", label: "MT2 · T337 氹仔海濱花園" },
   { id: "MT4-T337", route: "MT4", dir: "1", stop: "T337", stopName: "氹仔海濱花園", label: "MT4 · T337 氹仔海濱花園" },
+  { id: "MT2-T337", route: "MT2", dir: "0", stop: "T337", stopName: "氹仔海濱花園", label: "MT2 · T337 氹仔海濱花園" },
+  { id: "52-T337", route: "52", dir: "0", stop: "T337", stopName: "氹仔海濱花園", label: "52 · T337 氹仔海濱花園" },
   { id: "26-M16", route: "26", dir: "0", stop: "M16/1", stopName: "提督馬路/雅廉訪", label: "26 · M16/1 提督馬路/雅廉訪" },
 ];
 export async function getBusEta(): Promise<ApiResult<{ note: string; routes: Array<{ id: string; route: string; stop: string; stopName: string; label: string; eta: string | null; minutes: number | null; estimate: boolean; detail: string }> }>> {
