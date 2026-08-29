@@ -76,18 +76,27 @@ export async function getFx(): Promise<ApiResult<{ date: string; base: string; r
 
 type DsatResponse = { header?: string; data?: { routeInfo?: Array<{ staCode: string; busInfo?: Array<{ speed?: string; status?: string }> }> } };
 const busQueries = [
-  { id: "34-T338", route: "34", dir: "1", stop: "T338", label: "34 · T338 海洋花園衛生中心" },
-  { id: "34-M222", route: "34", dir: "0", stop: "M222/2", label: "34 · M222/2 看台街" },
-  { id: "26-T337", route: "26", dir: "0", stop: "T337", label: "26 · T337 氹仔海濱花園" },
-  { id: "MT2-T337", route: "MT2", dir: "0", stop: "T337", label: "MT2 · T337 氹仔海濱花園" },
-  { id: "MT4-T337", route: "MT4", dir: "1", stop: "T337", label: "MT4 · T337 氹仔海濱花園" },
-  { id: "26-M16", route: "26", dir: "0", stop: "M16/1", label: "26 · M16/1 提督馬路/雅廉訪" },
+  { id: "34-T338", route: "34", dir: "1", stop: "T338", stopName: "海洋花園衛生中心", label: "34 · T338 海洋花園衛生中心" },
+  { id: "34-M222", route: "34", dir: "0", stop: "M222/2", stopName: "看台街", label: "34 · M222/2 看台街" },
+  { id: "26-T337", route: "26", dir: "0", stop: "T337", stopName: "氹仔海濱花園", label: "26 · T337 氹仔海濱花園" },
+  { id: "MT2-T337", route: "MT2", dir: "0", stop: "T337", stopName: "氹仔海濱花園", label: "MT2 · T337 氹仔海濱花園" },
+  { id: "MT4-T337", route: "MT4", dir: "1", stop: "T337", stopName: "氹仔海濱花園", label: "MT4 · T337 氹仔海濱花園" },
+  { id: "26-M16", route: "26", dir: "0", stop: "M16/1", stopName: "提督馬路/雅廉訪", label: "26 · M16/1 提督馬路/雅廉訪" },
 ];
-export async function getBusEta(): Promise<ApiResult<{ note: string; routes: Array<{ id: string; route: string; stop: string; label: string; eta: string | null; minutes: number | null; estimate: boolean; detail: string }> }>> {
+export async function getBusEta(): Promise<ApiResult<{ note: string; routes: Array<{ id: string; route: string; stop: string; stopName: string; label: string; eta: string | null; minutes: number | null; estimate: boolean; detail: string }> }>> {
   return safe("澳門交通事務局·巴士即時位置", async () => {
+    const feedCache = new Map<string, Promise<DsatResponse>>();
+    const getFeed = (route: string, dir: string) => {
+      const key = `${route}:${dir}`;
+      const existing = feedCache.get(key);
+      if (existing) return existing;
+      const request = fetchJson<DsatResponse>(`${DSAT}?routeName=${encodeURIComponent(route)}&dir=${dir}`, 15_000, { Referer: "https://bis.dsat.gov.mo/macauweb/" });
+      feedCache.set(key, request);
+      return request;
+    };
     const routes = await Promise.all(busQueries.map(async (query) => {
       try {
-        const result = await fetchJson<DsatResponse>(`${DSAT}?routeName=${encodeURIComponent(query.route)}&dir=${query.dir}`, 9000, { Referer: "https://bis.dsat.gov.mo/macauweb/" });
+        const result = await getFeed(query.route, query.dir);
         const routeInfo = result.data?.routeInfo ?? [];
         const stopIndex = routeInfo.findIndex((station) => station.staCode === query.stop);
         if (stopIndex < 0) return { ...query, eta: null, minutes: null, estimate: true, detail: "此方向暫無站點資料" };
